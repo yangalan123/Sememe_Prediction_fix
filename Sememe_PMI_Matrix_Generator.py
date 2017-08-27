@@ -5,7 +5,7 @@ if (len(sys.argv)<3):
     exit();
 hownet_filename = sys.argv[1];
 target_filename = sys.argv[2];
-with open(hownet_filename,'r',encoding='utf-8') as hownet:
+with open(hownet_filename,'r') as hownet:
     sememe_all = {};
     data = hownet.readlines();
     words = data[0::2];
@@ -34,8 +34,8 @@ with open(hownet_filename,'r',encoding='utf-8') as hownet:
                         sem2semMatrix[(item,item2)] = 1;
                         sem2semMatrix[(item2,item)] = 1;
     seall_key = sememe_all.keys();
-    with open(target_filename,'w',encoding='utf-8') as target:
-        with open('sememe_all','w',encoding='utf-8') as seall:
+    with open(target_filename,'w') as target:
+        with open('sememe_all','w') as seall:
             seall.write(str(len(seall_key))+'\n'+str(list(seall_key)));
             for item in seall_key:
                 for item2 in seall_key:
@@ -46,7 +46,7 @@ with open(hownet_filename,'r',encoding='utf-8') as hownet:
                             target.write(str(math.log(1+float(sememe_all[item])/seme_occur))+" ");
                     else:
                         if ((item,item2) in sem2semMatrix):
-                            target.write(str(math.log(1+sem2semMatrix[(item,item2)]/sememe_all[item]/sememe_all[item2]))+" ");
+                            target.write(str(math.log(1+float(sem2semMatrix[(item,item2)])/float(sememe_all[item])/float(sememe_all[item2])))+" ");
                         else: 
                             target.write("0 ");
                 target.write('\n');

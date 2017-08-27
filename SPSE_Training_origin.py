@@ -13,20 +13,18 @@ target_filename = sys.argv[4];
 para_lambda = 0;
 max_iter = 20;
 
-with open(hownet_filename,'r',encoding='utf-8') as hownet:
-    with open(embedding_filename,'r',encoding='utf-8') as embedding_file:
-        with open(sememe_all_filename,'r',encoding='utf-8') as sememe_all:
+with open(hownet_filename,'r') as hownet:
+    with open(embedding_filename,'r') as embedding_file:
+        with open(sememe_all_filename,'r') as sememe_all:
             sememes_buf = sememe_all.readlines() ;
             sememes = sememes_buf[1].strip().strip('[]').split(',');
             sememes = [sememe.strip().strip('\'') for sememe in sememes];
             sememe_size = len(sememes);
             #read sememe complete
             word2sememe = {}
-            f = open('tmp','w',encoding='utf-8')
             while True:
                 word = hownet.readline().strip();
                 sememes_tmp = hownet.readline().strip().split();
-                f.write(word+"\n"+len(word)+"\n") 
                 if (word or sememes_tmp):
                     word2sememe[word] = [] ;
                     length = len(sememes_tmp);
