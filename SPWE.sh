@@ -1,0 +1,2 @@
+python SPWE.py embedding_200.txt train_hownet hownet.txt_test_revised output_SPWE_200
+python scorer.py output_SPWE_200 hownet.txt_answer_revised
