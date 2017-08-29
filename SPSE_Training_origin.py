@@ -1,9 +1,12 @@
+from __future__ import division;
 import numpy as np;
 import pickle;
 import random;
 import math;
 import sys;
 np.set_printoptions(threshold=np.nan);
+reload(sys)
+sys.setdefaultencoding("utf-8")
 if (len(sys.argv)<5):
     exit(0);
 hownet_filename = sys.argv[1];
@@ -17,9 +20,10 @@ with open(hownet_filename,'r') as hownet:
     with open(embedding_filename,'r') as embedding_file:
         with open(sememe_all_filename,'r') as sememe_all:
             sememes_buf = sememe_all.readlines() ;
-            sememes = sememes_buf[1].strip().strip('[]').split(',');
+            sememes = sememes_buf[1].strip().strip('[]').split(' ');
             sememes = [sememe.strip().strip('\'') for sememe in sememes];
             sememe_size = len(sememes);
+            hownet_words = []
             #read sememe complete
             word2sememe = {}
             while True:
@@ -27,6 +31,7 @@ with open(hownet_filename,'r') as hownet:
                 sememes_tmp = hownet.readline().strip().split();
                 if (word or sememes_tmp):
                     word2sememe[word] = [] ;
+                    hownet_words.append(word);
                     length = len(sememes_tmp);
                     for i in range(0,length):
                         word2sememe[word].append(sememes_tmp[i]);
@@ -36,13 +41,16 @@ with open(hownet_filename,'r') as hownet:
             line = embedding_file.readline();
             arr = line.strip().split();
 
-            word_size = int(arr[0]);
+            word_size = len(hownet_words);
             dim_size = int(arr[1]);
             embedding_vec = {};
             W = [];
             for line in embedding_file:
                 arr = line.strip().split();
                 float_arr = [];
+                now_word = arr[0].strip();
+                if (now_word not in hownet_words):
+                    continue;
                 for i in range(1,dim_size+1):
                     float_arr.append(float(arr[i]));
                 regular = math.sqrt(sum([x*x for x in float_arr]));
@@ -62,16 +70,18 @@ with open(hownet_filename,'r') as hownet:
                     arr = [float(e) for e in arr];
                     P.extend(arr);
                 P = np.array(P).reshape(sememe_size,sememe_size);
-                Judge = np.ones((sememe_size,sememe_size),dtype=np.int);
                 M = np.zeros((word_size,sememe_size));
-                M_Judge = np.ones((word_size,sememe_size));
                 se_index = 0;
                 word_index = 0;
-                for word in embedding_vec:
-                    for sememe in word2sememe[word]:
-                        se_index = sememes.index(sememe);
-                        M[word_index][se_index] = 1;
-                    word_index += 1;
+                for word in hownet_words:
+                    try:
+                        for sememe in word2sememe[word]:
+                            se_index = sememes.index(sememe);
+                            M[word_index][se_index] = 1;
+                        word_index += 1;
+                    except:
+                        print(word);
+                        sys.exit();
                 print("PMI calculating complete");
             sememe_embedding = (np.random.randn(sememe_size*2,dim_size)-0.5) / dim_size;
             bias_sememe = (np.random.randn(sememe_size,1)-0.5) / dim_size;
@@ -94,7 +104,7 @@ with open(hownet_filename,'r') as hownet:
                 print('Initailization complete');
                 learning_rate = 0.01;
                 for i in range(1,max_iter):
-                    print("Process:%f,learning_rate:%f" %(i/max_iter,learning_rate));
+                    print("Process:%f" %(i/max_iter));
                     loss = 0;
                     count = 0;
                     for j in range(0,word_size):

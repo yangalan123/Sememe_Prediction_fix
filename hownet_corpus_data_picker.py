@@ -1,4 +1,6 @@
 import sys;
+reload(sys)
+sys.setdefaultencoding="utf-8"
 if (len(sys.argv)<4):
     print('no enough parameter')
     exit();

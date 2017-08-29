@@ -1,5 +1,7 @@
 import sys;
 import math;
+reload(sys)
+sys.setdefaultencoding="utf-8"
 if (len(sys.argv)<3):
     print('Insufficient Parameters!');
     exit();
@@ -36,7 +38,7 @@ with open(hownet_filename,'r') as hownet:
     seall_key = sememe_all.keys();
     with open(target_filename,'w') as target:
         with open('sememe_all','w') as seall:
-            seall.write(str(len(seall_key))+'\n'+str(list(seall_key)));
+            seall.write(str(len(seall_key))+'\n'+" ".join(list(seall_key)));
             for item in seall_key:
                 for item2 in seall_key:
                     if (item == item2):

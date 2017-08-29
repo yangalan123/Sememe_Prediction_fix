@@ -1,3 +1,3 @@
-python SPSE_Training_origin.py train_hownet train_data_200 sememe_all result_SPSE_origin
+#python SPSE_Training_origin.py train_hownet train_data_200 sememe_all result_SPSE_origin
 python SPSE_Prediction.py result_SPSE_origin sememe_all train_data_200 hownet.txt_test_revised output_SPSE_origin 
 python scorer.py output_SPSE_origin hownet.txt_answer_revised > res2_2_2.txt

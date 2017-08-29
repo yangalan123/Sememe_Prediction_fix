@@ -1,3 +1,4 @@
+from __future__ import division
 import sys;
 import math;
 import pickle;
@@ -35,7 +36,7 @@ def matrix_factorization(R, P, Q, K, steps=20, alpha=0.01, beta=0):
         if e < 0.001:
             break
     return P, Q.T
-with open(embedding_filename,'r',encoding = 'utf-8') as embedding_file:
+with open(embedding_filename,'r') as embedding_file:
 
     line = embedding_file.readline();
     arr = line.strip().split();
@@ -58,19 +59,26 @@ with open(embedding_filename,'r',encoding = 'utf-8') as embedding_file:
     W = np.array(W).reshape(word_size,dim_size)
     N = word_size;
     M = dim_size;
-    with open(sememe_all_filename,'r',encoding='utf-8') as sememe_all:
+    print('Embedding File Reading Complete')
+    with open(sememe_all_filename,'r') as sememe_all:
         sememes_buf = sememe_all.readlines() ;
-        sememes = sememes_buf[1].strip().strip('[]').split(',');
+        sememes = sememes_buf[1].strip().strip('[]').split(' ');
         sememes = [sememe.strip().strip('\'') for sememe in sememes];
         #print(sememes);
         sememe_size = len(sememes);
         #read sememe complete
+    print('Sememe File Reading Complete')
     K = sememe_size;
     M_alter_init = np.random.rand(N,K);
     S_init = np.random.rand(K,dim_size);
-    with open('checkpoint_SPASE','rb') as checkpoint:
-        M_alter_init = pickle.load(checkpoint)
-        S_init=pickle.load(checkpoint)
+    try:
+        print('Checkpoint loading...')
+        with open('checkpoint_SPASE','rb') as checkpoint:
+            M_alter_init = pickle.load(checkpoint)
+            S_init=pickle.load(checkpoint)
+        print('Checkpoint successfully loaded.')
+    except:
+        print('Checkpoint loading failed, initailized with random value')
     M_alter, S = matrix_factorization(W,M_alter_init,S_init,K);
     with open('checkpoint_SPASE','wb') as checkpoint:
         pickle.dump(M_alter,checkpoint)
@@ -80,9 +88,9 @@ with open(embedding_filename,'r',encoding = 'utf-8') as embedding_file:
         regular = S[index].dot(S[index].T);
         S[index] = S[index] / regular;
         index += 1;
-    with open('output_SPASE_Opt','w',encoding='utf-8') as output:
-        with open('score_SPASE_Opt','ab') as score_outpout:
-            with open(test_filename,'r',encoding='utf-8') as test:
+    with open('output_SPASE','w') as output:
+        with open('score_SPASE','ab') as score_outpout:
+            with open(test_filename,'r') as test:
                 for line in test:
                     word = line.strip();
                     vec = embedding_vec[word];
@@ -95,7 +103,7 @@ with open(embedding_filename,'r',encoding = 'utf-8') as embedding_file:
                         index += 1;
                     score_list.sort(key=lambda x:x[1],reverse=True);
                     output.write(line.strip()+'\n') ;
-                    output.write(str(score_list)+'\n');
+                    output.write(" ".join([x[0] for x in score_list])+'\n');
                     pickle.dump(score_list,score_outpout);
                         
                         

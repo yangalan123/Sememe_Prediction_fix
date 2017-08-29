@@ -1,3 +1,4 @@
+from __future__ import division
 import sys;
 import pickle;
 import copy;
@@ -19,10 +20,10 @@ embedding_file = None;
 hownet_file = None;
 output_file = None;
 try:
-    embedding_file = open(embedding_filename,"r",encoding="utf-8");
-    hownet_file = open(hownet_filename,"r",encoding="utf-8");
-    output_file = open(output_filename,"w",encoding="utf-8");
-    test_file = open(test_filename,"r",encoding="utf-8");
+    embedding_file = open(embedding_filename,"r");
+    hownet_file = open(hownet_filename,"r");
+    output_file = open(output_filename,"wb");
+    test_file = open(test_filename,"r");
 except Exception as e:
     print(e);
 else:
@@ -114,12 +115,12 @@ else:
         return final,reslist; 
     score_file = open('score_SPWE','wb');
     for line in test_data:
-        print("Process:%f" %(len(test_list) / len(test_data)))
+        print("Process:%f" %(float(len(test_list)) / len(test_data)))
         test_list.append(line.strip());
         result=[]
         result,reslist = ScorerForSememe(line.strip());
         output_file.write(line.strip()+"\n");
-        output_file.write(str(result)+"\n");
+        output_file.write(' '.join(result)+"\n");
         pickle.dump(reslist,score_file);
     output_file.close();
     test_file.close();

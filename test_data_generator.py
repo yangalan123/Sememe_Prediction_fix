@@ -1,6 +1,7 @@
 import sys;
 import random;
-
+reload(sys)
+sys.setdefaultencoding="utf-8"
 if (len(sys.argv)<3):
     print("no enough parameter");
     exit();
