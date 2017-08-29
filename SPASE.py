@@ -29,6 +29,8 @@ def matrix_factorization(R, P, Q, K, steps=20, alpha=0.01, beta=0):
                 P[i] = P[i] - np.divide(alpha * der_P[i],np.sqrt(der_P_sum[i]));
                 Q[j] = Q[j] - np.divide(alpha * der_Q[j],np.sqrt(der_Q_sum[j]));
         e = 0
+        print('Process:%f' %(float(step)/steps,))
+        if (steps % 5 !=0):continue
         for i in range(line):
             for j in range(col):
                 e = e + pow(R[i][j] - np.dot(P[i],Q[j]), 2)
