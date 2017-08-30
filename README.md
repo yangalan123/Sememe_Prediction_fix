@@ -3,6 +3,7 @@ The code for **Lexical Sememe Prediction via Word Embeddings and Matrix Factoriz
 
 ## Running Requirement
 **Memory**: at least 8GB, 16GB or more is recommended.
+
 **Storage**: at least 15GB, 20GB or more is recommended. 
 (Although other devices has not been specified, we strong recommend that use devices of high performance)
 
