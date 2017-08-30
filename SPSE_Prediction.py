@@ -67,8 +67,8 @@ with open(sememe_embedding_filename,'rb') as sememe_embedding_file:
                             score.sort(key=lambda x:x[1],reverse=True);
                             result = [x[0] for x in score];
                             output.write(" ".join((result))+'\n');
-                            with open('score_SPSE','ab') as score_file:
-                                pickle.dump(score,score_file);
+                            with open('model_SPSE','ab') as model_file:
+                                pickle.dump(score,model_file);
                             
 
 

@@ -91,7 +91,7 @@ with open(embedding_filename,'r') as embedding_file:
         S[index] = S[index] / regular;
         index += 1;
     with open('output_SPASE','w') as output:
-        with open('score_SPASE','ab') as score_outpout:
+        with open('model_SPASE','ab') as model_outpout:
             with open(test_filename,'r') as test:
                 for line in test:
                     word = line.strip();
@@ -106,7 +106,7 @@ with open(embedding_filename,'r') as embedding_file:
                     score_list.sort(key=lambda x:x[1],reverse=True);
                     output.write(line.strip()+'\n') ;
                     output.write(" ".join([x[0] for x in score_list])+'\n');
-                    pickle.dump(score_list,score_outpout);
+                    pickle.dump(score_list,model_outpout);
                         
                         
                         

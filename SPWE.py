@@ -19,6 +19,38 @@ output_filename = sys.argv[4];
 embedding_file = None;
 hownet_file = None;
 output_file = None;
+def ScorerForSememe(target):
+	vec = embedding_vec[target];
+	res = copy.deepcopy(sememe_all);
+	for word in res:
+		res[word] = 0;
+	nearestwords = [];
+	for word in embedding_vec:
+		if (word==target):
+			continue;
+		if (word not in word2sememe):
+			continue;
+		wordvec = embedding_vec[word];
+		dotsum = sum([x*y for x,y in zip(wordvec,vec)]);
+		cosine = dotsum;
+		nearestwords.append((word,abs(cosine)));
+	nearestwords.sort(key=lambda x:x[1],reverse=True);
+	nearestwords = nearestwords[0:para_nearest_k+1];
+	rank = 1;
+	for word,cosine in nearestwords:
+		sememes = word2sememe[word];
+		for sememe in sememes:
+			res[sememe]+=cosine*pow(para_c,rank);
+		rank+=1;
+	reslist = [];
+	for sememe in res:
+		reslist.append((sememe,res[sememe]));
+	reslist.sort(key=lambda x:x[1],reverse=True);
+	final = [];
+	for sememe,score in reslist:
+		final.append(sememe);
+	return final,reslist; 
+
 try:
     embedding_file = open(embedding_filename,"r");
     hownet_file = open(hownet_filename,"r");
@@ -33,6 +65,7 @@ else:
 
     word_size = 0;
     dim_size = 0;
+	print('Loading Embedding Files...')
 
     line = embedding_file.readline();
     arr = line.strip().split();
@@ -50,9 +83,11 @@ else:
         embedding_vec[word] = [];
         for i in range(1,dim_size+1):
             embedding_vec[word].append(float(arr[i])/regular);
+    print('Embedding File Successfully Loaded.')
 
     word2sememe = {};
     sememe_all = {};
+	print('Loading Hownet File...')
     while True:
         word = hownet_file.readline().strip();
         sememes = hownet_file.readline().strip().split();
@@ -64,56 +99,18 @@ else:
                 #print(word2sememe[word],len(word2sememe[word]))
                 sememe_all[sememes[i]] = 0;
         else: break;
-    #for word in word2sememe:
-        #print(word);
-        #print(word2sememe[word]);
+	print('Hownet File Successfully Loaded.')
     test_list = [];
     test_data = test_file.readlines();
     checkBuffer = [];
+	print('Loading test data...')
     for word in test_data:
         if (word.strip() in embedding_vec):
             checkBuffer.append(word.strip());
     test_data=checkBuffer;
-    print(len(test_data),len(checkBuffer));
-    print("initialization Complete.");
-    # initialization Complete
-    def ScorerForSememe(target):
-        vec = embedding_vec[target];
-        res = copy.deepcopy(sememe_all);
-        for word in res:
-            res[word] = 0;
-        nearestwords = [];
-        for word in embedding_vec:
-            if (word==target):
-                continue;
-            if (word not in word2sememe):
-                continue;
-            wordvec = embedding_vec[word];
-            dotsum = sum([x*y for x,y in zip(wordvec,vec)]);
-            #dotx2 = sum([x*x for x in wordvec]);
-            #doty2 = sum([y*y for y in vec]);
-            cosine = dotsum;
-            nearestwords.append((word,abs(cosine)));
-        nearestwords.sort(key=lambda x:x[1],reverse=True);
-        #print(target);
-        #print(nearestwords);
-        nearestwords = nearestwords[0:para_nearest_k+1];
-        #print(nearestwords);
-        rank = 1;
-        for word,cosine in nearestwords:
-            sememes = word2sememe[word];
-            for sememe in sememes:
-                res[sememe]+=cosine*pow(para_c,rank);
-            rank+=1;
-        reslist = [];
-        for sememe in res:
-            reslist.append((sememe,res[sememe]));
-        reslist.sort(key=lambda x:x[1],reverse=True);
-        final = [];
-        for sememe,score in reslist:
-            final.append(sememe);
-        return final,reslist; 
-    score_file = open('score_SPWE','wb');
+	print('Test Data Successfully Loaded.')
+    print("Initialization Complete.");
+    model_file = open('model_SPWE','wb');
     for line in test_data:
         print("Process:%f" %(float(len(test_list)) / len(test_data)))
         test_list.append(line.strip());
@@ -121,8 +118,9 @@ else:
         result,reslist = ScorerForSememe(line.strip());
         output_file.write(line.strip()+"\n");
         output_file.write(' '.join(result)+"\n");
-        pickle.dump(reslist,score_file);
+        pickle.dump(reslist,model_file);
     output_file.close();
     test_file.close();
     embedding_file.close();
     hownet_file.close();
+	model_file.close();

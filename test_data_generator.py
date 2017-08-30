@@ -7,8 +7,8 @@ if (len(sys.argv)<3):
     exit();
 hownet_filename = sys.argv[1];
 embedding_filename = sys.argv[2];
-answer_filename = hownet_filename+"_answer_revised";
-test_filename = hownet_filename+"_test_revised";
+answer_filename = hownet_filename+"_answer";
+test_filename = hownet_filename+"_test";
 with open(hownet_filename,'r') as hownet:
     with open(test_filename,'w') as test:
         with open(answer_filename,'w') as answer:
