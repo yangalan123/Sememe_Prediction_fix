@@ -20,36 +20,36 @@ embedding_file = None;
 hownet_file = None;
 output_file = None;
 def ScorerForSememe(target):
-	vec = embedding_vec[target];
-	res = copy.deepcopy(sememe_all);
-	for word in res:
-		res[word] = 0;
-	nearestwords = [];
-	for word in embedding_vec:
-		if (word==target):
-			continue;
-		if (word not in word2sememe):
-			continue;
-		wordvec = embedding_vec[word];
-		dotsum = sum([x*y for x,y in zip(wordvec,vec)]);
-		cosine = dotsum;
-		nearestwords.append((word,abs(cosine)));
-	nearestwords.sort(key=lambda x:x[1],reverse=True);
-	nearestwords = nearestwords[0:para_nearest_k+1];
-	rank = 1;
-	for word,cosine in nearestwords:
-		sememes = word2sememe[word];
-		for sememe in sememes:
-			res[sememe]+=cosine*pow(para_c,rank);
-		rank+=1;
-	reslist = [];
-	for sememe in res:
-		reslist.append((sememe,res[sememe]));
-	reslist.sort(key=lambda x:x[1],reverse=True);
-	final = [];
-	for sememe,score in reslist:
-		final.append(sememe);
-	return final,reslist; 
+    vec = embedding_vec[target];
+    res = copy.deepcopy(sememe_all);
+    for word in res:
+        res[word] = 0;
+    nearestwords = [];
+    for word in embedding_vec:
+        if (word==target):
+            continue;
+        if (word not in word2sememe):
+            continue;
+        wordvec = embedding_vec[word];
+        dotsum = sum([x*y for x,y in zip(wordvec,vec)]);
+        cosine = dotsum;
+        nearestwords.append((word,abs(cosine)));
+    nearestwords.sort(key=lambda x:x[1],reverse=True);
+    nearestwords = nearestwords[0:para_nearest_k+1];
+    rank = 1;
+    for word,cosine in nearestwords:
+        sememes = word2sememe[word];
+        for sememe in sememes:
+            res[sememe]+=cosine*pow(para_c,rank);
+        rank+=1;
+    reslist = [];
+    for sememe in res:
+        reslist.append((sememe,res[sememe]));
+    reslist.sort(key=lambda x:x[1],reverse=True);
+    final = [];
+    for sememe,score in reslist:
+        final.append(sememe);
+    return final,reslist; 
 
 try:
     embedding_file = open(embedding_filename,"r");
@@ -65,7 +65,7 @@ else:
 
     word_size = 0;
     dim_size = 0;
-	print('Loading Embedding Files...')
+    print('Loading Embedding Files...')
 
     line = embedding_file.readline();
     arr = line.strip().split();
@@ -87,7 +87,7 @@ else:
 
     word2sememe = {};
     sememe_all = {};
-	print('Loading Hownet File...')
+    print('Loading Hownet File...')
     while True:
         word = hownet_file.readline().strip();
         sememes = hownet_file.readline().strip().split();
@@ -99,16 +99,16 @@ else:
                 #print(word2sememe[word],len(word2sememe[word]))
                 sememe_all[sememes[i]] = 0;
         else: break;
-	print('Hownet File Successfully Loaded.')
+    print('Hownet File Successfully Loaded.')
     test_list = [];
     test_data = test_file.readlines();
     checkBuffer = [];
-	print('Loading test data...')
+    print('Loading test data...')
     for word in test_data:
         if (word.strip() in embedding_vec):
             checkBuffer.append(word.strip());
     test_data=checkBuffer;
-	print('Test Data Successfully Loaded.')
+    print('Test Data Successfully Loaded.')
     print("Initialization Complete.");
     model_file = open('model_SPWE','wb');
     for line in test_data:
@@ -123,4 +123,4 @@ else:
     test_file.close();
     embedding_file.close();
     hownet_file.close();
-	model_file.close();
+    model_file.close();
