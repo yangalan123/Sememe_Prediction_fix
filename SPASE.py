@@ -10,7 +10,7 @@ embedding_filename = sys.argv[1];
 sememe_all_filename = sys.argv[2];
 test_filename = sys.argv[3];
 hownet_filename = sys.argv[4]
-def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=20, alpha=0.01, beta=0):
+def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=10, alpha=0.01, beta=0):
     word_size = wordvec.shape[0]
     dim_size = wordvec.shape[1]
     der_M_alter_sum = np.ones((word_size,sememe_size))
