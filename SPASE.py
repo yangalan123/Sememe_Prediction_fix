@@ -3,41 +3,40 @@ import sys;
 import math;
 import pickle;
 import numpy as np;
-if (len(sys.argv) < 4):
+if (len(sys.argv) < 5):
     print('Parameters insufficient!');
     exit();
 embedding_filename = sys.argv[1];
 sememe_all_filename = sys.argv[2];
 test_filename = sys.argv[3];
-def matrix_factorization(R, P, Q, K, steps=20, alpha=0.01, beta=0):
-    Q = Q.T;
-    line = R.shape[0]
-    col = R.shape[1]
-    der_P_sum = np.ones((line,K))
-    der_Q_sum = np.ones((col,K))
+hownet_filename = sys.argv[4]
+def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=20, alpha=0.01, beta=0):
+    word_size = wordvec.shape[0]
+    dim_size = wordvec.shape[1]
+    der_M_alter_sum = np.ones((word_size,sememe_size))
+    der_semvec_sum = np.ones((sememe_size,dim_size))
     for step in range(steps):
-        der_P = np.zeros((line,K))
-        der_Q = np.zeros((col,K))
-        for i in range(line):
-            for j in range(col):
-                eij = np.dot(P[i],Q[j].T) -R[i][j]
-                #P[i](K),Q[j](K)
-                der_P[i] +=  (2 * eij * Q[j] );
-                der_Q[j] +=  (2 * eij * P[i] );
-                der_P_sum[i] += der_P[i] ** 2
-                der_Q_sum[j] += der_Q[j] ** 2
-                P[i] = P[i] - np.divide(alpha * der_P[i],np.sqrt(der_P_sum[i]));
-                Q[j] = Q[j] - np.divide(alpha * der_Q[j],np.sqrt(der_Q_sum[j]));
+        der_M_alter = np.zeros((word_size,sememe_size))
+        der_semvec = np.zeros((sememe_size,dim_size))
+        delta = np.dot(M*M_alter,semvec) - wordvec
+        for i in range(word_size):
+            for j in range(sememe_size):
+                eij = 2 * M[i][j] * delta[i]; 
+                #M_alter[i](sememe_size),semvec[j](K)
+                der_M_alter[i][j] += np.dot(eij,semvec[j].T)
+                der_semvec[j] +=  eij * M_alter[i][j];
+                der_M_alter_sum[i][j] += der_M_alter[i][j] ** 2
+                der_semvec_sum[j] += der_semvec[j] ** 2
+                M_alter[i][j] = M_alter[i][j] - np.divide(alpha * der_M_alter[i][j],np.sqrt(der_M_alter_sum[i][j]));
+                semvec[j] = semvec[j] - np.divide(alpha * der_semvec[j],np.sqrt(der_semvec_sum[j]));
         e = 0
         print('Process:%f' %(float(step)/steps,))
         if (step % 5 !=0):continue
-        for i in range(line):
-            for j in range(col):
-                e = e + pow(R[i][j] - np.dot(P[i],Q[j]), 2)
-        print('Process:%f,loss:%f' % (step/steps,e/float(R.size)));
+        e = sum(sum(delta ** 2))
+        print('loss:%f' % (step/steps,e/float(wordvec.size)));
         if e < 0.001:
             break
-    return P, Q.T
+    return M_alter, semvec.T
 with open(embedding_filename,'r') as embedding_file:
 
     line = embedding_file.readline();
@@ -46,21 +45,37 @@ with open(embedding_filename,'r') as embedding_file:
     word_size = int(arr[0]);
     dim_size = int(arr[1]);
     embedding_vec = {};
+    word_list = []
     W = [];
+    hownet_dict = {}
+    with open(hownet_filename,'r') as hownet:
+        buf = hownet.readlines()    
+        words = buf[0::2]
+        word_size = len(words)
+        word2sememes = buf[1::2]
+        words = [item.strip() for item in words]
+        index = 0
+        for item in words:
+            hownet_dict[item] = word2sememes[index].strip().split()
+            index += 1
+        print('Hownet File Reading Complete')
     for line in embedding_file:
         arr = line.strip().split();
+        word = arr[0].strip();
+        if (word not in hownet_dict):
+            continue;
+        word_list.append(item)
         float_arr = [];
         for i in range(1,dim_size+1):
             float_arr.append(float(arr[i]));
         regular = math.sqrt(sum([x*x for x in float_arr]));
-        word = arr[0].strip();
         embedding_vec[word] = [];
         for i in range(1,dim_size+1):
             embedding_vec[word].append(float(arr[i])/regular);
             W.append(float(arr[i])/regular);
     W = np.array(W).reshape(word_size,dim_size)
-    N = word_size;
-    M = dim_size;
+    sememe_size = 0;
+    sememes = []
     print('Embedding File Reading Complete')
     with open(sememe_all_filename,'r') as sememe_all:
         sememes_buf = sememe_all.readlines() ;
@@ -70,19 +85,26 @@ with open(embedding_filename,'r') as embedding_file:
         sememe_size = len(sememes);
         #read sememe complete
     print('Sememe File Reading Complete')
-    K = sememe_size;
-    M_alter_init = np.random.rand(N,K);
-    S_init = np.random.rand(K,dim_size);
+    index = 0;
+    M = np.zeros((word_size,sememe_size))
+    for word in word_list:
+        buf = hownet_dict[word]
+        for sememe in buf:
+            position = sememes.index(sememe)
+            M[index][position] = 1;
+        index += 1;
+    M_alter_init = np.random.rand(word_size,sememe_size);
+    S_init = np.random.rand(sememe_size,dim_size);
     try:
         print('Checkpoint loading...')
-        with open('checkpoint_SPASE','rb') as checkpoint:
+        with open('Checkpoint_SPASE','rb') as checkpoint:
             M_alter_init = pickle.load(checkpoint)
             S_init=pickle.load(checkpoint)
         print('Checkpoint successfully loaded.')
     except:
         print('Checkpoint loading failed, initailized with random value')
-    M_alter, S = matrix_factorization(W,M_alter_init,S_init,K);
-    with open('checkpoint_SPASE','wb') as checkpoint:
+    M_alter, S = matrix_factorization(M,W,M_alter_init,S_init,sememe_size);
+    with open('Checkpoint_SPASE','wb') as checkpoint:
         pickle.dump(M_alter,checkpoint)
         pickle.dump(S,checkpoint)
     index = 0;
@@ -91,7 +113,7 @@ with open(embedding_filename,'r') as embedding_file:
         S[index] = S[index] / regular;
         index += 1;
     with open('output_SPASE','w') as output:
-        with open('model_SPASE','ab') as model_outpout:
+        with open('model_SPASE','wb') as model_outpout:
             with open(test_filename,'r') as test:
                 for line in test:
                     word = line.strip();
