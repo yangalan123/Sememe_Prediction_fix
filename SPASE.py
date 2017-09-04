@@ -10,7 +10,7 @@ embedding_filename = sys.argv[1];
 sememe_all_filename = sys.argv[2];
 test_filename = sys.argv[3];
 hownet_filename = sys.argv[4]
-def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=5, alpha=0.001, beta=0):
+def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=50, alpha=0.1, beta=0):
     word_size = wordvec.shape[0]
     dim_size = wordvec.shape[1]
     der_M_alter_sum = np.ones((word_size,sememe_size))
@@ -34,12 +34,10 @@ def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=5, alph
                 semvec[j] = semvec[j] - np.divide(alpha * der_semvec[j],np.sqrt(der_semvec_sum[j]));
         e = 0
         print('Process:%f' %(float(step)/steps,))
-        #if (step % 5 !=0):continue
+        if (step % 5 !=0):continue
         delta = np.dot(M*M_alter,semvec) - wordvec
         e = sum(sum(delta ** 2))
         print('loss:%f' % (e/float(wordvec.size)));
-        if e < 0.001:
-            break
     return M_alter, semvec
 with open(embedding_filename,'r') as embedding_file:
 
@@ -72,6 +70,7 @@ with open(embedding_filename,'r') as embedding_file:
         for i in range(1,dim_size+1):
             float_arr.append(float(arr[i]));
         regular = math.sqrt(sum([x*x for x in float_arr]));
+        #regular = 1
         embedding_vec[word] = [];
         flag = 1;
         if (word not in hownet_dict):
@@ -116,9 +115,15 @@ with open(embedding_filename,'r') as embedding_file:
         pickle.dump(S,checkpoint)
     index = 0;
     while (index < sememe_size):
-        regular = S[index].dot(S[index].T);
+        regular = np.sqrt(S[index].dot(S[index].T));
         S[index] = S[index] / regular;
         index += 1;
+    test_file = open('test','w');
+    M_alter = M_alter*M;
+    #for item1 in range(len(word_list)):
+        #for item2 in M_alter[item1]:
+            #test_file.write(str(item2)+" ")
+        #test_file.write("\n");
     with open('output_SPASE','w') as output:
         with open('model_SPASE','wb') as model_outpout:
             with open(test_filename,'r') as test:
@@ -126,6 +131,8 @@ with open(embedding_filename,'r') as embedding_file:
                     word = line.strip();
                     vec = embedding_vec[word];
                     vec = np.array(vec)
+                    regular = vec.dot(vec.T)
+                    vec = vec / regular
                     score_list = [];
                     index = 0;
                     while (index < sememe_size):
@@ -135,4 +142,5 @@ with open(embedding_filename,'r') as embedding_file:
                     score_list.sort(key=lambda x:x[1],reverse=True);
                     output.write(line.strip()+'\n') ;
                     output.write(" ".join([x[0] for x in score_list])+'\n');
+                    #output.write(str(" ".join([str(x[1]) for x in score_list]))+'\n');
                     pickle.dump(score_list,model_outpout);
