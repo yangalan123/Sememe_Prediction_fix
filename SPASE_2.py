@@ -10,36 +10,44 @@ embedding_filename = sys.argv[1];
 sememe_all_filename = sys.argv[2];
 test_filename = sys.argv[3];
 hownet_filename = sys.argv[4]
-def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=30, alpha=0.01, beta=0):
+def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=20, alpha=0.1, beta=0):
     word_size = wordvec.shape[0]
     dim_size = wordvec.shape[1]
-    der_M_alter_sum = np.ones((word_size,sememe_size))
-    der_semvec_sum = np.ones((sememe_size,dim_size))
+    der_M_alter_sum = np.zeros((word_size,sememe_size))
+    #der_M_alter_sum_fix = np.ones((word_size,sememe_size))
+    #der_M_alter_sum_fix *= 1e-8;
+    der_semvec_sum = np.zeros((sememe_size,dim_size))
+    der_semvec_sum_fix = np.ones((sememe_size,dim_size))
+    der_semvec_sum_fix *= 1e-8;
     delta = np.zeros(wordvec.shape);
-    count = np.zeros((1,sememe_size))
+    der_M_alter = np.zeros((word_size,sememe_size))
+    der_semvec = np.zeros((sememe_size,dim_size))
+    #f = open('test','w');
     for step in range(steps):
-        der_M_alter = np.zeros((word_size,sememe_size))
-        der_semvec = np.zeros((sememe_size,dim_size))
+        #flag = True;
         for i in range(word_size):
             delta[i] = np.dot(M[i]*M_alter[i],semvec) - wordvec[i]
             for j in range(sememe_size):
                 if (M[i][j] == 0):
                     continue;
-                count[0][j] += 1;
                 eij = 2 * delta[i]; 
                 #M_alter[i](sememe_size),semvec[j](K)
-                der_M_alter[i][j] = np.dot(eij,semvec[j].T)
-                der_semvec[j] =  eij * M_alter[i][j];
-                der_M_alter_sum[i][j] += 0.02*(der_M_alter[i][j] ** 2)
-                der_semvec_sum[j] += 0.02*(der_semvec[j] ** 2)
-                M_alter[i][j] = M_alter[i][j] - np.divide(alpha * der_M_alter[i][j],np.sqrt(der_M_alter_sum[i][j]));
-                semvec[j] = semvec[j] - np.divide(alpha * der_semvec[j],np.sqrt(der_semvec_sum[j]));
+                der_M_alter[i][j] = alpha * np.dot(eij,semvec[j].T)
+                der_semvec[j] = alpha * eij * M_alter[i][j];
+                der_M_alter_sum[i][j] +=der_M_alter[i][j] ** 2
+                der_semvec_sum[j] +=der_semvec[j] ** 2
+                #if (flag):
+                    #f.write(str(M_alter[i][j])+"\n"+str(np.divide(alpha * der_M_alter[i][j],np.sqrt(der_M_alter_sum[i][j]+1e-8)))+"\n");
+                    #f.write(str(semvec[j])+'\n'+str(np.divide(alpha * der_semvec[j],np.sqrt(der_semvec_sum[j]+der_semvec_sum_fix[j])))+'\n');
+                    #flag = False;
+                M_alter[i][j] = M_alter[i][j] - np.divide(der_M_alter[i][j],np.sqrt(der_M_alter_sum[i][j]+1e-8));
+                semvec[j] = semvec[j] - np.divide(der_semvec[j],np.sqrt(der_semvec_sum[j]+der_semvec_sum_fix[j]));
         e = 0
         print('Process:%f' %(float(step)/steps,))
-        if (step % 5 !=0):continue
         delta = np.dot(M*M_alter,semvec) - wordvec
         e = sum(sum(delta ** 2))
         print('loss:%f' % (e/float(wordvec.size)));
+    #f.close()
     return M_alter, semvec
 with open(embedding_filename,'r') as embedding_file:
 
@@ -71,8 +79,8 @@ with open(embedding_filename,'r') as embedding_file:
         float_arr = [];
         for i in range(1,dim_size+1):
             float_arr.append(float(arr[i]));
-        #regular = math.sqrt(sum([x*x for x in float_arr]));
-        regular = 1
+        regular = math.sqrt(sum([x*x for x in float_arr]));
+        #regular = 1
         embedding_vec[word] = [];
         flag = 1;
         if (word not in hownet_dict):
@@ -101,8 +109,8 @@ with open(embedding_filename,'r') as embedding_file:
             position = sememes.index(sememe)
             M[index][position] = 1;
         index += 1;
-    M_alter_init = (np.random.rand(word_size,sememe_size)-0.5)/sememe_size;
-    S_init = (np.random.rand(sememe_size,dim_size)-0.5)/dim_size;
+    M_alter_init = np.random.rand(word_size,sememe_size)/word_size/sememe_size;
+    S_init = np.random.rand(sememe_size,dim_size)/dim_size/sememe_size;
     try:
         print('Checkpoint loading...')
         with open('Checkpoint_SPASE','rb') as checkpoint:
@@ -126,8 +134,8 @@ with open(embedding_filename,'r') as embedding_file:
         #for item2 in M_alter[item1]:
             #test_file.write(str(item2)+" ")
         #test_file.write("\n");
-    with open('output_SPASE_own','w') as output:
-        with open('model_SPASE','wb') as model_outpout:
+    with open('output_SPASE_2','w') as output:
+        with open('model_SPASE_2','wb') as model_outpout:
             with open(test_filename,'r') as test:
                 for line in test:
                     word = line.strip();
@@ -139,10 +147,10 @@ with open(embedding_filename,'r') as embedding_file:
                     index = 0;
                     while (index < sememe_size):
                         score = vec.dot(S[index].T);
-                        score_list.append((sememes[index],(score)));
+                        score_list.append((sememes[index],abs(score)));
                         index += 1;
                     score_list.sort(key=lambda x:x[1],reverse=True);
                     output.write(line.strip()+'\n') ;
                     output.write(" ".join([x[0] for x in score_list])+'\n');
-                    output.write(str(" ".join([str(x[1]) for x in score_list]))+'\n');
+                    #output.write(str(" ".join([str(x[1]) for x in score_list]))+'\n');
                     pickle.dump(score_list,model_outpout);
