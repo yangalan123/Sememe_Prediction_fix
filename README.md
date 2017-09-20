@@ -5,7 +5,7 @@ The code for **Lexical Sememe Prediction via Word Embeddings and Matrix Factoriz
 **Memory**: at least 8GB, 16GB or more is recommended.
 
 **Storage**: at least 15GB, 20GB or more is recommended. 
-(Although other devices has not been specified, we strong recommend that use devices of high performance)
+(Although other devices has not been specified, we strongly recommend that use devices of high performance)
 
 ## How to Run
 1. Prepare a file that contains Chinese word embeddings(of Google Word2Vec form).We recommend that the amount of words be at least 200,000 and the dimention be at least 200. It will achieve much better result using a large ( 20GB or more is recommended.) corpus to train your embeddings for running this program.
