@@ -1,148 +1,123 @@
-from __future__ import division
-import sys;
-import math;
-import pickle;
-import numpy as np;
-if (len(sys.argv) < 5):
-    print('Parameters insufficient!');
-    exit();
-embedding_filename = sys.argv[1];
-sememe_all_filename = sys.argv[2];
-test_filename = sys.argv[3];
-hownet_filename = sys.argv[4]
-def matrix_factorization(M, wordvec, M_alter, semvec, sememe_size, steps=30, alpha=0.01, beta=0):
-    word_size = wordvec.shape[0]
-    dim_size = wordvec.shape[1]
-    der_M_alter_sum = np.ones((word_size,sememe_size))
-    der_semvec_sum = np.ones((sememe_size,dim_size))
-    delta = np.zeros(wordvec.shape);
-    count = np.zeros((1,sememe_size))
-    for step in range(steps):
-        der_M_alter = np.zeros((word_size,sememe_size))
-        der_semvec = np.zeros((sememe_size,dim_size))
-        for i in range(word_size):
-            delta[i] = np.dot(M[i]*M_alter[i],semvec) - wordvec[i]
-            for j in range(sememe_size):
-                if (M[i][j] == 0):
-                    continue;
-                count[0][j] += 1;
-                eij = 2 * delta[i]; 
-                #M_alter[i](sememe_size),semvec[j](K)
-                der_M_alter[i][j] = np.dot(eij,semvec[j].T)
-                der_semvec[j] =  eij * M_alter[i][j];
-                der_M_alter_sum[i][j] += 0.02*(der_M_alter[i][j] ** 2)
-                der_semvec_sum[j] += 0.02*(der_semvec[j] ** 2)
-                M_alter[i][j] = M_alter[i][j] - np.divide(alpha * der_M_alter[i][j],np.sqrt(der_M_alter_sum[i][j]));
-                semvec[j] = semvec[j] - np.divide(alpha * der_semvec[j],np.sqrt(der_semvec_sum[j]));
-        e = 0
-        print('Process:%f' %(float(step)/steps,))
-        if (step % 5 !=0):continue
-        delta = np.dot(M*M_alter,semvec) - wordvec
-        e = sum(sum(delta ** 2))
-        print('loss:%f' % (e/float(wordvec.size)));
-    return M_alter, semvec
+import sys
+import numpy
+import pickle
+import math
+
+def Matrix_Factorization(embedding_matrix,annotation_table,sememe_size,epoch = 30,alpha = 0.01):
+    shape = embedding_matrix.shape
+    word_size = shape[0]
+    vector_size = shape[1]
+    sememe_embedding_matrix = numpy.random.rand(sememe_size,vector_size)-0.5
+    gradsq_sememe_embedding_matrix = numpy.ones((sememe_size,vector_size))
+    weight_matrix = numpy.random.rand(word_size,sememe_size)
+    gradsq_weight_matrix = numpy.ones((word_size,sememe_size))
+    for step in xrange(epoch):
+        cost = 0;
+        for num in xrange(word_size):
+            for dim in xrange(vector_size):
+                weight = numpy.zeros((1,sememe_size))
+                for item in annotation_table[num]:
+                    weight[0][item] = weight_matrix[num][item]
+                loss = 0
+                for i in xrange(sememe_size):
+                    loss += weight[0][i]*sememe_embedding_matrix[i][dim]
+                loss = loss - embedding_matrix[num][dim]
+                cost += loss * loss
+                loss = loss * 2
+                for item in annotation_table[num]:
+                    weight_matrix[num][item] -= alpha*loss*sememe_embedding_matrix[item][dim]/math.sqrt(gradsq_weight_matrix[num][item])
+                    gradsq_weight_matrix[num][item] += (loss * sememe_embedding_matrix[item][dim]) ** 2
+                    sememe_embedding_matrix[item][dim] -= alpha*loss*weight[0][item]/math.sqrt(gradsq_sememe_embedding_matrix[item][dim])
+                    gradsq_sememe_embedding_matrix[item][dim] += (loss*weight[0][item]) ** 2
+
+        print("process:%f,error:%f\n" % (step/float(epoch),cost/float(word_size*vector_size)))    
+    return sememe_embedding_matrix;
+    
+    
+sememe_all_filename = sys.argv[1]
+Hownet_filename = sys.argv[2]
+embedding_filename = sys.argv[3]
+
+sememes = []
+sememe_size = 0
+with open(sememe_all_filename,'r') as sememe_all_file:
+    sememe_size = int(sememe_all_file.readline())
+    sememes = sememe_all_file.readline().strip().strip('[]').split(' ')
+    sememes = [x.strip().strip('\'') for x in sememes]
+
+print("Sememe files reading complete")
+#sememe_all reading complete
+Hownet_dict = {}
+word_dict = {}
+with open(Hownet_filename,'r') as Hownet_file:
+    buf = Hownet_file.readlines()
+    num = 0
+    while (num < len(buf)):
+        word = buf[num].strip()
+        Hownet_dict_buf = buf[num+1].strip().split()
+        Hownet_dict[word] = [sememes.index(x) for x in Hownet_dict_buf]
+        num += 2
+#Hownet reading complete
+print("Hownet reading complete")
+
+word_size = 0
+vector_size = 0
+embedding_matrix = []
+embedding_matrix_all = {} 
+annotation_table = []
 with open(embedding_filename,'r') as embedding_file:
+    buf = embedding_file.readlines()
+    num = 0
+    word_size,vector_size = [int(x) for x in buf[0].split()]
+    num += 1
+    while (num < len(buf)):
+        word = buf[num].strip().split()[0]
+        embedding_matrix_all[word] = numpy.array([float(x) for x in buf[num].strip().split()[1:]]).reshape(1,vector_size);
+        word_dict[word] = num
+        if (word not in Hownet_dict):
+            num += 1;
+            continue;
+        embedding_matrix.extend([float(x) for x in buf[num].strip().split()[1:]])
+        annotation_table.append(Hownet_dict[word])
+        num += 1
 
-    line = embedding_file.readline();
-    arr = line.strip().split();
+embedding_matrix = numpy.array(embedding_matrix).reshape(len(embedding_matrix)/vector_size,vector_size)
+#embedding reading complete
+print("Embedding reading complete")
 
-    word_size = int(arr[0]);
-    dim_size = int(arr[1]);
-    embedding_vec = {};
-    word_list = []
-    W = [];
-    hownet_dict = {}
-    with open(hownet_filename,'r') as hownet:
-        buf = hownet.readlines()    
-        words = buf[0::2]
-        word_size = len(words)
-        word2sememes = buf[1::2]
-        words = [item.strip() for item in words]
-        index = 0
-        for item in words:
-            hownet_dict[item] = word2sememes[index].strip().split()
-            index += 1
-        print('Hownet File Reading Complete')
-    for line in embedding_file:
-        arr = line.strip().split();
-        word = arr[0].strip();
-        if (word in hownet_dict):
-            word_list.append(item)
-        float_arr = [];
-        for i in range(1,dim_size+1):
-            float_arr.append(float(arr[i]));
-        #regular = math.sqrt(sum([x*x for x in float_arr]));
-        regular = 1
-        embedding_vec[word] = [];
-        flag = 1;
-        if (word not in hownet_dict):
-            flag = 0;
-        for i in range(1,dim_size+1):
-            embedding_vec[word].append(float(arr[i])/regular);
-            if (flag == 1):
-                W.append(float(arr[i])/regular);
-    W = np.array(W).reshape(word_size,dim_size)
-    sememe_size = 0;
-    sememes = []
-    print('Embedding File Reading Complete')
-    with open(sememe_all_filename,'r') as sememe_all:
-        sememes_buf = sememe_all.readlines() ;
-        sememes = sememes_buf[1].strip().strip('[]').split(' ');
-        sememes = [sememe.strip().strip('\'') for sememe in sememes];
-        #print(sememes);
-        sememe_size = len(sememes);
-        #read sememe complete
-    print('Sememe File Reading Complete')
-    index = 0;
-    M = np.zeros((word_size,sememe_size))
-    for word in word_list:
-        buf = hownet_dict[word]
-        for sememe in buf:
-            position = sememes.index(sememe)
-            M[index][position] = 1;
-        index += 1;
-    M_alter_init = (np.random.rand(word_size,sememe_size)-0.5)/sememe_size;
-    S_init = (np.random.rand(sememe_size,dim_size)-0.5)/dim_size;
-    try:
-        print('Checkpoint loading...')
-        with open('Checkpoint_SPASE','rb') as checkpoint:
-            M_alter_init = pickle.load(checkpoint)
-            S_init=pickle.load(checkpoint)
-        print('Checkpoint successfully loaded.')
-    except:
-        print('Checkpoint loading failed, initailized with random value')
-    M_alter, S = matrix_factorization(M,W,M_alter_init,S_init,sememe_size);
-    with open('Checkpoint_SPASE','wb') as checkpoint:
-        pickle.dump(M_alter,checkpoint)
-        pickle.dump(S,checkpoint)
-    index = 0;
-    while (index < sememe_size):
-        regular = np.sqrt(S[index].dot(S[index].T));
-        S[index] = S[index] / regular;
-        index += 1;
-    test_file = open('test','w');
-    M_alter = M_alter*M;
-    #for item1 in range(len(word_list)):
-        #for item2 in M_alter[item1]:
-            #test_file.write(str(item2)+" ")
-        #test_file.write("\n");
-    with open('output_SPASE_own','w') as output:
-        with open('model_SPASE','wb') as model_outpout:
-            with open(test_filename,'r') as test:
-                for line in test:
-                    word = line.strip();
-                    vec = embedding_vec[word];
-                    vec = np.array(vec)
-                    regular = vec.dot(vec.T)
-                    vec = vec / regular
-                    score_list = [];
-                    index = 0;
-                    while (index < sememe_size):
-                        score = vec.dot(S[index].T);
-                        score_list.append((sememes[index],(score)));
-                        index += 1;
-                    score_list.sort(key=lambda x:x[1],reverse=True);
-                    output.write(line.strip()+'\n') ;
-                    output.write(" ".join([x[0] for x in score_list])+'\n');
-                    output.write(str(" ".join([str(x[1]) for x in score_list]))+'\n');
-                    pickle.dump(score_list,model_outpout);
+print("Training start")
+#with open("result_SPASE","rb") as result:
+    #Sememe_embedding_Matrix = pickle.load(result)
+Sememe_embedding_Matrix = Matrix_Factorization(embedding_matrix,annotation_table,sememe_size)
+
+print("Backuping...")
+with open("result_SPASE","wb") as result:
+    pickle.dump(Sememe_embedding_Matrix,result)
+print("Training finish, start evaluating")
+
+test_filename = sys.argv[4]
+output_file = open("output_SPASE",'w')
+print(Sememe_embedding_Matrix.shape)
+with open(test_filename,'r') as test_file:
+    buf = test_file.readlines()
+    num = 0 
+    while (num < len(buf)):
+        word = buf[num].strip()
+        vec = embedding_matrix_all[word]
+        result = []
+        num_sememe = 0
+        while (num_sememe < sememe_size):
+            sememe = Sememe_embedding_Matrix[num_sememe]
+            tmp = numpy.dot(vec,sememe.T)
+            if (tmp<0):
+                num_sememe+=1
+                continue
+            len1 = vec.dot(vec.T)
+            len2 = sememe.dot(sememe.T)
+            tmp = tmp/numpy.sqrt(len1*len2)
+            result.append((sememes[num_sememe],tmp))
+            num_sememe+=1
+        result.sort(key=lambda x:x[1],reverse=True)
+        output_file.write(word+'\n'+" ".join([x[0] for x in result])+'\n')
+        num+=1
+output_file.close()

@@ -15,7 +15,7 @@ The code for **Lexical Sememe Prediction via Word Embeddings and Matrix Factoriz
 3. Run data_generator.sh, the program will automatically generate evaluation data and other data files required during training.
 
 4. Run SPSE.sh/SPWE.sh/SPASE.sh , the corresponding model will be automatically training and evaluated. 
-(As for SPASE model, we recommend that run SPASE.sh for serveral times until the average cost is much less than 1. It will take pretty much time to train SPASE model)
+(As for SPASE model, it will take pretty much time for training. On a typical computer with CPU of 12 cores, it takes 3 days. For better performance, we suggest that user rewrite it in C++)
 
 5. Run Ensemble_Model.sh after you have run SPSE.sh and SPWE.sh. (Please check Ensemble_Model.sh, you will get more information about how to run other combinations of models (only support combining 2 models at once)
 
